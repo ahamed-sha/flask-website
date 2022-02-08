@@ -164,32 +164,25 @@ def get_all_posts():
         return render_template("index.html", all_posts=posts, logged_in=current_user.is_authenticated, admin=admin_user)
 
 
-@app.route("/post/<int:post_id>", methods=['GET', 'POST'])
+@app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
     form = CommentForm()
-    try:
-        admin_user = current_user
-    except AttributeError:
-        admin_user = 0
-    else:
-        if form.validate_on_submit():
-            if not current_user.is_authenticated:
-                flash("You need to login or register to comment.")
-                return redirect(url_for("login"))
+    requested_post = BlogPost.query.get(post_id)
 
-            requested_post = BlogPost.query.get(post_id)
-            comment_text = form.comment_text.data
-            comment = Comment(
-                text=comment_text,
-                comment_author=current_user,
-                parent_post=requested_post
-            )
-            db.session.add(comment)
-            db.session.commit()
-    finally:
+    if form.validate_on_submit():
+        if not current_user.is_authenticated:
+            flash("You need to login or register to comment.")
+            return redirect(url_for("login"))
 
-        return render_template("post.html", post=requested_post, logged_in=current_user.is_authenticated,
-                               admin=admin_user, form=form)
+        new_comment = Comment(
+            text=form.comment_text.data,
+            comment_author=current_user,
+            parent_post=requested_post
+        )
+        db.session.add(new_comment)
+        db.session.commit()
+
+    return render_template("post.html", post=requested_post, form=form, current_user=current_user)
 
 
 @app.route("/about")
